@@ -1,0 +1,87 @@
+name: Deploy Application
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_HUB_USERNAME }}
+          password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+      - name: Build and Push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKER_HUB_USERNAME }}/termproject:${{ github.ref_name }}
+
+  deploy:
+    name: Deploy to EC2 Multibranch
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare deployment files
+        run: |
+          mkdir -p deploy
+          cp docker-compose.yml deploy/
+          cp -r sql deploy/
+
+          # สร้าง .env จาก secrets แทนการ copy จาก repo security
+          cat <<EOF > deploy/.env
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_USER=${{ secrets.DB_USER }}
+          DB_PASSWORD=${{ secrets.DB_PASSWORD }}
+          DB_NAME=${{ secrets.DB_NAME }}
+          PORT=3000
+          EOF
+
+      - name: Copy deployment files via SCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USER_NAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "deploy/*"
+          target: "app_${{ github.ref_name }}"
+          strip_components: 1
+
+      - name: Execute remote ssh commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.SSH_USER_NAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            BRANCH_NAME=${{ github.ref_name }}
+            APP_DIR=~/app_$BRANCH_NAME
+            cd $APP_DIR
+
+            export APP_IMAGE=${{ secrets.DOCKER_HUB_USERNAME }}/termproject:$BRANCH_NAME
+
+            sed -i "s|build: .|image: $APP_IMAGE|g" docker-compose.yml
+
+            if [ "$BRANCH_NAME" = "develop" ]; then
+              sed -i 's/"3000:3000"/"3001:3000"/g' docker-compose.yml
+              sed -i 's/"3306:3306"/"3307:3306"/g' docker-compose.yml
+            fi
+
+            docker-compose -p project_$BRANCH_NAME down || true
+            docker-compose -p project_$BRANCH_NAME pull
+            docker-compose -p project_$BRANCH_NAME up -d
