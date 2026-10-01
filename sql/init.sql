@@ -52,7 +52,7 @@ CREATE TABLE products (
     product_quantity INT DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE
+    FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE RESTRICT
 );
 
 -- Wishlist
@@ -85,7 +85,7 @@ CREATE TABLE orders (
     address_id INT,
     total_price DECIMAL(10, 2) NOT NULL,
     payment_method VARCHAR(50) DEFAULT 'credit_card',
-    status ENUM('pending', 'completed', 'cancelled') DEFAULT 'completed',
+    status ENUM('pending', 'processing', 'completed', 'cancelled') DEFAULT 'completed',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (address_id) REFERENCES addresses(address_id) ON DELETE SET NULL
@@ -124,6 +124,16 @@ CREATE TABLE IF NOT EXISTS payment_methods (
     FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
 );
 
+-- Password reset tokens (only a SHA-256 hash of each token is stored)
+CREATE TABLE IF NOT EXISTS password_resets (
+    reset_id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL UNIQUE,
+    expires_at DATETIME NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
 
 -- Mock Data Insertion Query
 INSERT INTO categories (category_id, category_name, category_image, is_visible) VALUES 
@@ -135,9 +145,9 @@ INSERT INTO categories (category_id, category_name, category_image, is_visible) 
 
 
 -- 1. Insert Users (We need John Smith for the orders, plus an Admin)
--- Using a dummy bcrypt hash for the password so your login system doesn't break if you test it
+-- Admin login: admin@bookstore.com / admin123 (real bcrypt hash, same password as seed/seedData.js)
 INSERT INTO users (user_id, username, email, password_hash, phone, role) VALUES 
-(1, 'Admin User', 'admin@bookstore.com', '$2a$10$wY.uV1J/O40L8yN27n6h.e9y1q8Yx.rGzV.1w.Y3y.Y.Y.Y.Y.Y.Y', '0812345678', 'admin'),
+(1, 'Admin User', 'admin@bookstore.com', '$2b$10$UNu5wTkk.h9I6/RZqXwK5.lcoI6Nmjwlt2g7ilxJd/5VdNFuhB3Ue', '0812345678', 'admin'),
 (2, 'John Smith', 'john@bookstore.comcart_items', '$2a$10$wY.uV1J/O40L8yN27n6h.e9y1q8Yx.rGzV.1w.Y3y.Y.Y.Y.Y.Y.Y', '0898765432', 'customer');
 
 -- 2. Insert Addresses (Extracting the two unique addresses from John's mock orders)

@@ -30,18 +30,9 @@
                         <a class="nav-link dropdown-toggle fw-bold text-dark" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Categories</a>
                         <ul class="dropdown-menu border-0 shadow" aria-labelledby="categoryDropdown">
-                            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
-                                <% categories.forEach(cat => { %>
-                                    <% const slugMap = { 'Fiction': 'fiction', 'Non-Fiction': 'nonfiction', "Children": 'children', "Mystery & Thriller": 'mystery', "Science & Technology": 'science' }; %>
-                                    <li><a class="dropdown-item" href="/category/<%= slugMap[cat.category_name] || cat.category_name.toLowerCase().replace(/[^a-z]+/g, '') %>"><%= cat.category_name %></a></li>
-                                <% }); %>
-                            <% } else { %>
-                            <li><a class="dropdown-item" href="/category/fiction">Fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/nonfiction">Non-fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/children">Children's Books</a></li>
-                            <li><a class="dropdown-item" href="/category/mystery">Mystery & Thriller</a></li>
-                            <li><a class="dropdown-item" href="/category/science">Science & Tech</a></li>
-                            <% } %>
+                            <% navCategories.forEach(cat => { %>
+                            <li><a class="dropdown-item" href="/category/<%= categorySlug(cat) %>"><%= cat.category_name %></a></li>
+                            <% }); %>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-primary fw-bold" href="/categories">View All Categories</a></li>
                         </ul>

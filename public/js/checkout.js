@@ -9,8 +9,12 @@ $(document).ready(function () {
     if ($checkoutItems.length) {
         // Continue to payment
         $('#btn-continue-payment').on('click', function () {
-            const selectedAddr = $('input[name="shipping-address"]:checked').val() || 1;
-            window.location.href = '/choosePayment?address_id=' + selectedAddr;
+            const selectedAddr = $('input[name="shipping-address"]:checked').val();
+            if (!selectedAddr) {
+                $('#address-error').removeClass('d-none');
+                return;
+            }
+            window.location.href = '/choosePayment?address_id=' + encodeURIComponent(selectedAddr);
         });
     }
 
@@ -30,12 +34,8 @@ $(document).ready(function () {
             $('#payment-method-input').val(method);
         });
 
-        // Confirm order
-        $('#btn-confirm-order').on('click', function (e) {
-            e.preventDefault();
-            alert('Order placed successfully! Thank you for your purchase.');
-            // Automatically submits the #payment-form to the backend
-            $('#checkout-payment-form').submit();
-        });
+        // Confirm order: the button is type="submit" form="checkout-payment-form",
+        // so the browser submits the form itself. The success message is shown
+        // on /account/orders only after the server has saved the order.
     }
 });

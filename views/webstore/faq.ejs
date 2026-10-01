@@ -27,11 +27,9 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle fw-bold text-dark" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Categories</a>
                         <ul class="dropdown-menu border-0 shadow" aria-labelledby="categoryDropdown">
-                            <li><a class="dropdown-item" href="/category/fiction">Fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/nonfiction">Non-fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/children">Children's Books</a></li>
-                            <li><a class="dropdown-item" href="/category/mystery">Mystery & Thriller</a></li>
-                            <li><a class="dropdown-item" href="/category/science">Science & Tech</a></li>
+                            <% navCategories.forEach(cat => { %>
+                            <li><a class="dropdown-item" href="/category/<%= categorySlug(cat) %>"><%= cat.category_name %></a></li>
+                            <% }); %>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-primary fw-bold" href="/categories">View All Categories</a></li>
                         </ul>
@@ -166,16 +164,16 @@
                         <a href="/account/profile">Account</a>
                         <a href="/cart">Cart</a>
                         <a href="/faq">FAQ</a>
-                        <a href="/condition">Returns</a>
+                        <a href="/condition#returns">Returns</a>
                     </div>
                 </div>
             </div>
             <div class="footer-bottom d-flex flex-column flex-sm-row justify-content-between align-items-center">
                 <p class="mb-2 mb-sm-0">&copy; 2025 Minimalist Bookstore. All rights reserved.</p>
                 <div class="d-flex gap-3">
-                    <a href="/condition">Privacy policy</a>
-                    <a href="/condition">Terms of service</a>
-                    <a href="/condition">Cookie settings</a>
+                    <a href="/condition#privacy">Privacy policy</a>
+                    <a href="/condition#terms">Terms of service</a>
+                    <a href="/condition#cookies">Cookie settings</a>
                 </div>
             </div>
         </div>

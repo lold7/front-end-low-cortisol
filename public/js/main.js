@@ -187,6 +187,7 @@ $(document).ready(function () {
             method: 'POST',
             contentType: 'application/json',
             data: JSON.stringify({ product_id: productId }),
+            dataType: 'json',
             success: function(res) {
                 if (res.success) {
                     const $icon = $btn.find('i');
@@ -201,8 +202,13 @@ $(document).ready(function () {
                     if (typeof showToast === 'function') showToast(res.message || 'Action failed', 'error');
                 }
             },
-            error: function() {
-                if (typeof showToast === 'function') showToast('Please log in to use your wishlist.', 'error');
+            error: function(xhr) {
+                // Guest (not logged in) -> send them to the login page
+                if (xhr.status === 401) {
+                    window.location.href = (xhr.responseJSON && xhr.responseJSON.redirect) || '/auth/login';
+                    return;
+                }
+                if (typeof showToast === 'function') showToast('Action failed. Please try again.', 'error');
             }
         });
     });
@@ -246,7 +252,9 @@ $(document).ready(function () {
         });
         $qtyInput.closest('.input-group').find('button').last().off('click').on('click', function () {
             let val = parseInt($qtyInput.val()) || 1;
-            if (val < 10) $qtyInput.val(val + 1);
+            // Upper limit comes from the server: min(10, stock)
+            const max = parseInt($qtyInput.attr('max')) || 10;
+            if (val < max) $qtyInput.val(val + 1);
         });
     }
 

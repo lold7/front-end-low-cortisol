@@ -52,14 +52,17 @@ const Category = {
         return result.affectedRows > 0;
     },
 
-    // Admin: Delete a category
-    deleteCategory: async (categoryId) => {
-        // Detach products from this category safely (set to NULL so we don't break order_items or products)
-        await db.query(
-            'UPDATE products SET category_id = NULL WHERE category_id = ?',
+    // Admin: Count products in a category (used to block deleting non-empty categories)
+    countProducts: async (categoryId) => {
+        const [rows] = await db.query(
+            'SELECT COUNT(*) AS cnt FROM products WHERE category_id = ?',
             [categoryId]
         );
-        // Now safely delete the category
+        return Number(rows[0].cnt);
+    },
+
+    // Admin: Delete a category (caller must make sure it has no products first)
+    deleteCategory: async (categoryId) => {
         const [result] = await db.query(
             'DELETE FROM categories WHERE category_id = ?',
             [categoryId]

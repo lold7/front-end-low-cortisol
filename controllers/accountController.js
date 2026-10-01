@@ -117,7 +117,7 @@ const accountController = {
                 order.items = items;
             }
 
-            res.render('webstore/orderHistory', { orders });
+            res.render('webstore/orderHistory', { orders, orderPlaced: req.query.placed === '1' });
         } catch (error) {
             console.error('Orders page error:', error);
             res.status(500).send('Internal Server Error');
@@ -132,11 +132,18 @@ const accountController = {
 
             if (!userId) return res.redirect('/auth/login');
 
-            const orderItems = await Order.getOrderDetails(orderId, userId);
+            // Fetch the order header (filtered by user_id, so other users' orders return null)
+            const order = await Order.getOrderById(orderId, userId);
+            if (!order) {
+                return res.status(404).render('webstore/404', { message: 'This order does not exist.' });
+            }
 
-            res.render('webstore/orderHistory', { 
-                orderId: orderId,
-                items: orderItems 
+            // Attach items and pass it in the same shape the template expects (orders array)
+            order.items = await Order.getOrderDetails(orderId, userId);
+
+            res.render('webstore/orderHistory', {
+                orders: [order],
+                expandOrderId: order.order_id
             });
         } catch (error) {
             console.error('Order details error:', error);

@@ -27,18 +27,9 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle fw-bold text-dark" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Categories</a>
                         <ul class="dropdown-menu border-0 shadow" aria-labelledby="categoryDropdown">
-                            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
-                                <% categories.forEach(cat => { %>
-                                    <% const slugMap = { 'Fiction': 'fiction', 'Non-Fiction': 'nonfiction', "Children": 'children', "Mystery & Thriller": 'mystery', "Science & Technology": 'science' }; %>
-                                    <li><a class="dropdown-item" href="/category/<%= slugMap[cat.category_name] || cat.category_name.toLowerCase().replace(/[^a-z]+/g, '') %>"><%= cat.category_name %></a></li>
-                                <% }); %>
-                            <% } else { %>
-                            <li><a class="dropdown-item" href="/category/fiction">Fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/nonfiction">Non-fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/children">Children's Books</a></li>
-                            <li><a class="dropdown-item" href="/category/mystery">Mystery & Thriller</a></li>
-                            <li><a class="dropdown-item" href="/category/science">Science & Tech</a></li>
-                            <% } %>
+                            <% navCategories.forEach(cat => { %>
+                            <li><a class="dropdown-item" href="/category/<%= categorySlug(cat) %>"><%= cat.category_name %></a></li>
+                            <% }); %>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-primary fw-bold" href="/categories">View All Categories</a></li>
                         </ul>
@@ -197,6 +188,12 @@
                         <input type="text" class="form-control" id="postal_code" name="postal_code" placeholder="Postal code">
                     </div>
                 </div>
+                <% const hasDefault = typeof addresses !== 'undefined' && addresses.some(a => a.is_default); %>
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="is_default" name="is_default" <%= hasDefault ? '' : 'checked disabled' %>>
+                    <label class="form-check-label" for="is_default">Set as default address</label>
+                    <% if (!hasDefault) { %><div class="form-text">Your first address will be set as default automatically.</div><% } %>
+                </div>
                 <div class="text-center">
                     <button type="submit" class="btn btn-save btn-primary rounded-pill px-5 fw-bold">Save Address</button>
                 </div>
@@ -321,7 +318,7 @@
                         <a href="/account/profile">Account</a>
                         <a href="/cart">Cart</a>
                         <a href="/faq">FAQ</a>
-                        <a href="/condition">Returns</a>
+                        <a href="/condition#returns">Returns</a>
                     </div>
                 </div>
             </div>

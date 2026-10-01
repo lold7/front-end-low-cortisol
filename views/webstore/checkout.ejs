@@ -29,18 +29,9 @@
                             Categories
                         </a>
                         <ul class="dropdown-menu border-0 shadow" aria-labelledby="categoryDropdown">
-                            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
-                                <% categories.forEach(cat => { %>
-                                    <% const slugMap = { 'Fiction': 'fiction', 'Non-Fiction': 'nonfiction', "Children": 'children', "Mystery & Thriller": 'mystery', "Science & Technology": 'science' }; %>
-                                    <li><a class="dropdown-item" href="/category/<%= slugMap[cat.category_name] || cat.category_name.toLowerCase().replace(/[^a-z]+/g, '') %>"><%= cat.category_name %></a></li>
-                                <% }); %>
-                            <% } else { %>
-                            <li><a class="dropdown-item" href="/category/fiction">Fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/nonfiction">Non-fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/children">Children's Books</a></li>
-                            <li><a class="dropdown-item" href="/category/mystery">Mystery & Thriller</a></li>
-                            <li><a class="dropdown-item" href="/category/science">Science & Tech</a></li>
-                            <% } %>
+                            <% navCategories.forEach(cat => { %>
+                            <li><a class="dropdown-item" href="/category/<%= categorySlug(cat) %>"><%= cat.category_name %></a></li>
+                            <% }); %>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-primary" href="/categories">View All Categories</a></li>
                         </ul>
@@ -133,7 +124,7 @@
                 <% if (typeof addresses !== 'undefined' && addresses.length > 0) { %>
                     <% addresses.forEach(function(addr) { %>
                     <div class="form-check mb-3 p-3 border rounded-3">
-                        <input class="form-check-input" type="radio" name="shipping-address" id="addr-<%= addr.address_id %>" value="<%= addr.address_id %>" <%= addr.is_default ? 'checked' : '' %>>
+                        <input class="form-check-input" type="radio" name="shipping-address" id="addr-<%= addr.address_id %>" value="<%= addr.address_id %>" <%= addr.address_id === selectedAddressId ? 'checked' : '' %>>
                         <label class="form-check-label w-100" for="addr-<%= addr.address_id %>">
                             <strong><%= addr.label %></strong> — <%= addr.full_name %><br>
                             <small class="text-muted"><%= addr.address_line %>, <%= addr.city %> <%= addr.postal_code %></small>
@@ -145,6 +136,7 @@
                 <% } %>
                 </div>
                 <a href="/account/addresses" class="btn btn-outline-secondary rounded-pill px-4 w-100 mb-2">Add New Address</a>
+                <p id="address-error" class="text-danger small mt-2 mb-0 d-none">Please add or select a shipping address first.</p>
                 <button id="btn-continue-payment" class="btn btn-primary rounded-pill px-5 fw-bold w-100 mt-3">Continue to Payment</button>
             </div>
         </div>

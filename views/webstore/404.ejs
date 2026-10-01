@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Not Found - InwZa Bookstore</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+</head>
+<body class="bg-white">
+
+    <nav class="navbar navbar-expand-lg navbar-light bg-white sticky-top shadow-sm py-3">
+        <div class="container d-flex align-items-center">
+            <div class="col-lg-4 collapse navbar-collapse d-none d-lg-flex" id="navbarNavLeft">
+                <ul class="navbar-nav mb-2 mb-lg-0">
+                    <li class="nav-item"><a class="nav-link fw-bold text-dark" href="/products">All Products</a></li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle fw-bold text-dark" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            Categories</a>
+                        <ul class="dropdown-menu border-0 shadow" aria-labelledby="categoryDropdown">
+                            <% navCategories.forEach(cat => { %>
+                            <li><a class="dropdown-item" href="/category/<%= categorySlug(cat) %>"><%= cat.category_name %></a></li>
+                            <% }); %>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-primary fw-bold" href="/categories">View All Categories</a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle fw-bold text-dark" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown">More</a>
+                        <ul class="dropdown-menu border-0 shadow">
+                            <li><a class="dropdown-item" href="/contact">Contact</a></li>
+                            <li><a class="dropdown-item" href="/account/profile">Account</a></li>
+                            <li><a class="dropdown-item" href="/cart">Cart</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-6 col-lg-4 text-center mx-auto mx-lg-0">
+                <a class="navbar-brand" href="/">
+                   <img src="/images/Logo.png" alt="InwZa Bookstore Logo" class="navbar-logo" width="100">
+                </a>
+            </div>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNavLeft, #navbarNavRight">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="col-lg-4 collapse navbar-collapse justify-content-end" id="navbarNavRight">
+                <form action="/search" method="GET" class="d-flex position-relative me-3 mt-3 mt-lg-0">
+                    <input name="q" class="form-control rounded-pill pe-5 bg-light border-0" type="search" placeholder="Search products..." aria-label="Search" style="width: 250px;" required>
+                    <button type="submit" class="btn position-absolute top-50 end-0 translate-middle-y border-0 p-0 me-3">
+                        <i class="bi bi-search text-muted"></i>
+                    </button>
+                </form>
+                <a href="/cart" class="btn btn-outline-dark rounded-pill px-3 mt-2 mt-lg-0 position-relative"><i class="bi bi-cart3 fs-5"></i><% if (typeof cartCount !== 'undefined' && cartCount > 0) { %><span class="cart-badge badge bg-primary rounded-pill position-absolute" style="font-size:0.6rem;top:-5px;right:-5px;"><%= cartCount %></span><% } %></a>
+                    <% if (typeof user !== 'undefined' && user) { %>
+                        <div class="dropdown mt-2 mt-lg-0">
+                            <a class="btn btn-outline-dark rounded-pill px-4 dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle me-1"></i> <%= user.username %>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end border-0 shadow">
+                                <% if (typeof user !== 'undefined' && user && user.role === 'admin') { %>
+                                <li><a class="dropdown-item fw-bold text-primary" href="/admin"><i class="bi bi-shield-lock me-1"></i>Admin Dashboard</a></li>
+                                <% } %>
+                                <li><a class="dropdown-item" href="/account/profile">Profile</a></li>
+                                <li><a class="dropdown-item" href="/account/orders">Order History</a></li>
+                                <li><a class="dropdown-item" href="/account/wishlist">Wishlist</a></li>
+                                <li><a class="dropdown-item" href="/account/addresses">Address Book</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item text-danger" href="/auth/logout">Logout</a></li>
+                            </ul>
+                        </div>
+                    <% } else { %>
+                    <a href="/auth/login" class="btn btn-primary rounded-pill px-4 mt-2 mt-lg-0">Login</a>
+                    <% } %>
+            </div>
+        </div>
+    </nav>
+
+    <section class="container my-5 py-5 text-center">
+        <div class="py-5">
+            <h1 class="display-1 fw-bold text-primary mb-3">404</h1>
+            <h2 class="fw-bold mb-3">Page Not Found</h2>
+            <p class="text-muted fs-5 mb-4"><%= (typeof message !== 'undefined' && message) ? message : 'The page you are looking for does not exist.' %></p>
+            <div class="d-flex justify-content-center gap-3">
+                <a href="/products" class="btn btn-primary rounded-pill px-4">Browse All Products</a>
+                <a href="/" class="btn btn-outline-dark rounded-pill px-4">Back to Home</a>
+            </div>
+        </div>
+    </section>
+
+    <footer class="container py-5 border-top bg-light">
+        <div class="text-center text-muted small pt-4 mt-4 border-top">
+            <p>&copy; 2026 InwZa Bookstore. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/cart.js"></script>
+    <script src="/js/wishlist.js"></script>
+    <script src="/js/main.js"></script>
+</body>
+</html>

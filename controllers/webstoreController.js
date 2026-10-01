@@ -1,5 +1,7 @@
 const Product = require('../models/productModel');
 const Category = require('../models/categoryModel');
+const Faq = require('../models/faqModel');
+const { categorySlug } = require('../utils/categorySlug');
 
 const webstoreController = {
     // 1. Render the Homepage
@@ -47,10 +49,17 @@ const webstoreController = {
     getProductDetails: async (req, res) => {
         try {
             const productId = req.params.id;
-            const product = await Product.getProductById(productId);
+
+            // Only positive whole numbers are valid ids (e.g. /product/abc → 404)
+            if (!/^\d+$/.test(productId)) {
+                return res.status(404).render('webstore/404', { message: 'This book does not exist.' });
+            }
+
+            // Hidden products / products in hidden categories are treated as not found
+            const product = await Product.getStorefrontProductById(productId);
 
             if (!product) {
-                return res.status(404).send('Book not found in the database.');
+                return res.status(404).render('webstore/404', { message: 'This book does not exist or is no longer available.' });
             }
 
             let isWishlisted = false;
@@ -60,9 +69,21 @@ const webstoreController = {
             }
 
             // Pass the single product to your productDetail.ejs file
+            // Stock info for the page: max selectable qty is 10 or the stock, whichever is lower
+            const stock = Math.max(0, parseInt(product.product_quantity) || 0);
+            const cartErrors = {
+                out_of_stock: 'Sorry, this book is out of stock.',
+                not_enough_stock: 'Not enough stock for that quantity. Please choose a smaller amount.',
+                invalid_quantity: 'Please choose a quantity between 1 and 10.',
+                invalid_format: 'Please choose one of the available formats.'
+            };
+
             res.render('webstore/productDetail', { 
                 product: product,
-                isWishlisted: isWishlisted
+                isWishlisted: isWishlisted,
+                stock: stock,
+                maxQty: Math.min(10, stock),
+                cartError: cartErrors[req.query.cart_error] || null
             });
         } catch (error) {
             console.error('Error loading product details:', error);
@@ -73,22 +94,13 @@ const webstoreController = {
     // 4. Render Products filtered by Category
     getCategoryProducts: async (req, res) => {
         try {
-            const categorySlug = req.params.id;
+            const slugParam = req.params.id;
             const categories = await Category.getVisibleCategories();
             
-            // Find the category matching the slug logic used in allCategories.ejs
-            const targetCategory = categories.find(c => {
-                const name = c.category_name;
-                const map = {
-                    'Fiction': 'fiction',
-                    'Children': 'children',
-                    'Non-Fiction': 'nonfiction',
-                    'Mystery & Thriller': 'mystery',
-                    'Science & Technology': 'science'
-                };
-                const expectedSlug = map[name] || name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-                return expectedSlug === categorySlug;
-            });
+            // Match by slug (e.g. /category/fiction) or by numeric id (e.g. /category/7)
+            const targetCategory = categories.find(c =>
+                categorySlug(c) === slugParam || String(c.category_id) === slugParam
+            );
 
             if (!targetCategory) {
                 return res.status(404).send('Category not found');
@@ -121,6 +133,22 @@ const webstoreController = {
     // 6. Render Contact Page
     getContactPage: (req, res) => {
         res.render('webstore/contact');
+    },
+
+    // 6.1 Render FAQ Page (Q&A pulled from the faqs table)
+    getFaqPage: async (req, res) => {
+        try {
+            const faqs = await Faq.getAllFaqs();
+            res.render('webstore/faq', { faqs: faqs });
+        } catch (error) {
+            console.error('Error loading FAQ page:', error);
+            res.status(500).send('Internal Server Error');
+        }
+    },
+
+    // 6.2 Render Conditions / Returns Policy Page
+    getConditionPage: (req, res) => {
+        res.render('webstore/condition');
     },
 
     // 7. Handle Search Queries

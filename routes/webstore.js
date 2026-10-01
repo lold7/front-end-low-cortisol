@@ -16,6 +16,8 @@ router.get('/category/:id', webstoreController.getCategoryProducts);
 // Route for All Categories page
 router.get('/categories', webstoreController.getAllCategories);
 router.get('/contact', webstoreController.getContactPage);
+router.get('/faq', webstoreController.getFaqPage);
+router.get('/condition', webstoreController.getConditionPage);
 router.get('/search', webstoreController.searchProducts);
 
 module.exports = router;

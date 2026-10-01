@@ -30,11 +30,9 @@
                         <a class="nav-link dropdown-toggle fw-bold text-dark" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Categories</a>
                         <ul class="dropdown-menu border-0 shadow" aria-labelledby="categoryDropdown">
-                            <li><a class="dropdown-item" href="/category/fiction">Fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/nonfiction">Non-fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/children">Children\'s Books</a></li>
-                            <li><a class="dropdown-item" href="/category/mystery">Mystery & Thriller</a></li>
-                            <li><a class="dropdown-item" href="/category/science">Science & Tech</a></li>
+                            <% navCategories.forEach(cat => { %>
+                            <li><a class="dropdown-item" href="/category/<%= categorySlug(cat) %>"><%= cat.category_name %></a></li>
+                            <% }); %>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-primary fw-bold" href="/categories">View All Categories</a></li>
                         </ul>
@@ -112,7 +110,7 @@
                             </div>
                             <div class="d-flex justify-content-between align-items-center mb-4">
                                 <div class="form-check">
-                                    <input class="form-check-input" type="checkbox" id="rememberMe">
+                                    <input class="form-check-input" type="checkbox" id="rememberMe" name="rememberMe" value="on">
                                     <label class="form-check-label small text-muted" for="rememberMe">Remember Me</label>
                                 </div>
                                 <a href="/auth/forgot-password" class="text-dark small fw-bold text-decoration-none">Forgot your password?</a>

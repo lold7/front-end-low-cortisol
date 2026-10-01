@@ -27,18 +27,9 @@
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle fw-bold text-dark" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">Categories</a>
                         <ul class="dropdown-menu border-0 shadow" aria-labelledby="categoryDropdown">
-                            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
-                                <% categories.forEach(cat => { %>
-                                    <% const slugMap = { 'Fiction': 'fiction', 'Non-Fiction': 'nonfiction', "Children": 'children', "Mystery & Thriller": 'mystery', "Science & Technology": 'science' }; %>
-                                    <li><a class="dropdown-item" href="/category/<%= slugMap[cat.category_name] || cat.category_name.toLowerCase().replace(/[^a-z]+/g, '') %>"><%= cat.category_name %></a></li>
-                                <% }); %>
-                            <% } else { %>
-                            <li><a class="dropdown-item" href="/category/fiction">Fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/nonfiction">Non-fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/children">Children's Books</a></li>
-                            <li><a class="dropdown-item" href="/category/mystery">Mystery & Thriller</a></li>
-                            <li><a class="dropdown-item" href="/category/science">Science & Tech</a></li>
-                            <% } %>
+                            <% navCategories.forEach(cat => { %>
+                            <li><a class="dropdown-item" href="/category/<%= categorySlug(cat) %>"><%= cat.category_name %></a></li>
+                            <% }); %>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-primary fw-bold" href="/categories">View All Categories</a></li>
                         </ul>
@@ -97,6 +88,12 @@
         <div class="container">
             <h1>Your order history</h1>
             <p>Review every past purchase and track the details of each order.</p>
+            <% if (typeof orderPlaced !== 'undefined' && orderPlaced) { %>
+            <div class="alert alert-success alert-dismissible fade show rounded-pill d-inline-block mt-3" role="alert">
+                <i class="bi bi-check-circle-fill me-2"></i> Order placed successfully! Thank you for your purchase.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            <% } %>
         </div>
     </section>
 
@@ -132,7 +129,7 @@
                                 </button>
                             </div>
                         </div>
-                        <div class="collapse" id="orderDetail-<%= order.order_id %>">
+                        <div class="collapse<%= (typeof expandOrderId !== 'undefined' && expandOrderId == order.order_id) ? ' show' : '' %>" id="orderDetail-<%= order.order_id %>">
                             <div class="card-body border-top pt-3">
                                 <% if (order.items && order.items.length > 0) { %>
                                     <% order.items.forEach(function(item) { %>
@@ -295,7 +292,7 @@
                         <a href="/account/profile">Account</a>
                         <a href="/cart">Cart</a>
                         <a href="/faq">FAQ</a>
-                        <a href="/condition">Returns</a>
+                        <a href="/condition#returns">Returns</a>
                     </div>
                 </div>
             </div>

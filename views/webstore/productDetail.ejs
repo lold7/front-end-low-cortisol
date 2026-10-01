@@ -19,19 +19,9 @@
                         <a class="nav-link dropdown-toggle fw-bold text-dark" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Categories</a>
                         <ul class="dropdown-menu border-0 shadow" aria-labelledby="categoryDropdown">
-                            <% if (typeof categories !== 'undefined' && categories.length > 0) { %>
-                                <% categories.forEach(cat => { %>
-                                    <% const slug = cat.category_name.toLowerCase().replace(/[^a-z0-9]+/g, '').replace('fiction','fiction').replace('nonfiction','nonfiction').replace('children','children').replace('mystery','mystery').replace('science','science'); %>
-                                    <% const slugMap = { 'Fiction': 'fiction', 'Non-Fiction': 'nonfiction', "Children": 'children', "Mystery & Thriller": 'mystery', "Science & Technology": 'science' }; %>
-                                    <li><a class="dropdown-item" href="/category/<%= slugMap[cat.category_name] || cat.category_name.toLowerCase().replace(/[^a-z]+/g, '') %>"><%= cat.category_name %></a></li>
-                                <% }); %>
-                            <% } else { %>
-                            <li><a class="dropdown-item" href="/category/fiction">Fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/nonfiction">Non-fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/children">Children's Books</a></li>
-                            <li><a class="dropdown-item" href="/category/mystery">Mystery & Thriller</a></li>
-                            <li><a class="dropdown-item" href="/category/science">Science & Tech</a></li>
-                            <% } %>
+                            <% navCategories.forEach(cat => { %>
+                            <li><a class="dropdown-item" href="/category/<%= categorySlug(cat) %>"><%= cat.category_name %></a></li>
+                            <% }); %>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-primary fw-bold" href="/categories">View All Categories</a></li>
                         </ul>
@@ -115,7 +105,16 @@
                     <span class="badge bg-light text-dark border mb-2"><%= product.category_name || 'Book' %></span>
                     <h1 class="display-5 fw-bold mb-2"><%= product.product_name %></h1>
                     <p class="text-muted fs-5 mb-3">By <%= attrs.author || 'Unknown Author' %></p>
-                    <h2 class="fw-bold text-primary mb-4">$<%= parseFloat(product.product_price).toFixed(2) %></h2>
+                    <h2 class="fw-bold text-primary mb-2">$<%= parseFloat(product.product_price).toFixed(2) %></h2>
+                    <div id="product-stock" class="mb-4 small fw-bold">
+                        <% if (stock <= 0) { %>
+                            <span class="text-danger"><i class="bi bi-x-circle me-1"></i> Out of Stock</span>
+                        <% } else if (stock <= 5) { %>
+                            <span class="text-warning"><i class="bi bi-exclamation-circle me-1"></i> Only <%= stock %> left in stock</span>
+                        <% } else { %>
+                            <span class="text-success"><i class="bi bi-check-circle me-1"></i> In Stock</span> <span class="text-muted fw-normal">(<%= stock %> available)</span>
+                        <% } %>
+                    </div>
                     <p class="text-muted" style="line-height: 1.8;">
                         <%= product.product_description %>
                     </p>
@@ -125,7 +124,7 @@
                 <% if (attrs.format && attrs.format.length > 0) { %>
                 <div class="mb-4">
                     <label class="form-label fw-bold small">Format</label>
-                    <select id="product-format" name="selected_format" class="form-select bg-light border-0 rounded-3 py-2 w-50">
+                    <select id="product-format" name="selected_format" form="add-to-cart-form" class="form-select bg-light border-0 rounded-3 py-2 w-50">
                         <% attrs.format.forEach((fmt, i) => { %>
                         <option value="<%= fmt.toLowerCase() %>" <%= i === 0 ? 'selected' : '' %>><%= fmt %></option>
                         <% }); %>
@@ -133,17 +132,29 @@
                 </div>
                 <% } %>
 
-                <form action="/cart/add" method="POST" class="d-flex align-items-center gap-3 mt-auto pt-4 border-top">
+                <% if (cartError) { %>
+                <div class="alert alert-danger border-0 rounded-3 py-2 small" role="alert">
+                    <i class="bi bi-exclamation-triangle me-1"></i> <%= cartError %>
+                </div>
+                <% } %>
+
+                <form id="add-to-cart-form" action="/cart/add" method="POST" class="d-flex align-items-center gap-3 mt-auto pt-4 border-top">
                     <input type="hidden" name="product_id" value="<%= product.product_id %>">
                     <div class="input-group w-auto">
-                        <button class="btn btn-light border btn-qty-minus" type="button"><i class="bi bi-dash"></i></button>
-                        <input id="product-qty" name="quantity" type="number" class="form-control text-center bg-white border" value="1" min="1" max="10" style="max-width: 60px;" readonly>
-                        <button class="btn btn-light border btn-qty-plus" type="button"><i class="bi bi-plus"></i></button>
+                        <button class="btn btn-light border btn-qty-minus" type="button" <%= stock <= 0 ? 'disabled' : '' %>><i class="bi bi-dash"></i></button>
+                        <input id="product-qty" name="quantity" type="number" class="form-control text-center bg-white border" value="<%= stock <= 0 ? 0 : 1 %>" min="1" max="<%= maxQty %>" style="max-width: 60px;" readonly>
+                        <button class="btn btn-light border btn-qty-plus" type="button" <%= stock <= 0 ? 'disabled' : '' %>><i class="bi bi-plus"></i></button>
                     </div>
 
+                    <% if (stock <= 0) { %>
+                    <button id="btn-add-to-cart" type="button" class="btn btn-secondary rounded-pill px-5 py-2 fw-bold flex-grow-1" disabled>
+                        <i class="bi bi-x-circle me-2"></i> Out of Stock
+                    </button>
+                    <% } else { %>
                     <button id="btn-add-to-cart" type="submit" class="btn btn-primary rounded-pill px-5 py-2 fw-bold flex-grow-1">
                         <i class="bi bi-cart-plus me-2"></i> Add to Cart
                     </button>
+                    <% } %>
                     <button id="btn-wishlist" type="button" class="btn btn-outline-dark rounded-pill px-3 py-2" data-product-id="<%= product.product_id %>"><i class="bi bi-heart<%= (typeof isWishlisted !== 'undefined' && isWishlisted) ? '-fill' : '' %>"></i></button>
                 </form>
                 

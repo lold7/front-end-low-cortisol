@@ -33,10 +33,21 @@ app.use(express.json());
 // Global template variables middleware
 const User = require('./models/userModel');
 const Cart = require('./models/cartModel');
+const Category = require('./models/categoryModel');
+const { categorySlug } = require('./utils/categorySlug');
 
 app.use(async (req, res, next) => {
     res.locals.user = null;
     res.locals.cartCount = 0;
+    res.locals.navCategories = [];
+    res.locals.categorySlug = categorySlug;
+
+    // Categories for the navbar dropdown (visible ones only, straight from DB)
+    try {
+        res.locals.navCategories = await Category.getVisibleCategories();
+    } catch (error) {
+        console.error('Error fetching navbar categories:', error);
+    }
 
     if (req.session && req.session.userId) {
         try {
@@ -83,15 +94,15 @@ app.use('/', cartRoutes);
 // Protected Admin Routes
 app.use('/admin', authAdmin); // Protects the back-office dashboard
 app.use('/backoffice', (req, res, next) => {
-    // Allow login and register pages without auth
-    if (req.path === '/login' || req.path === '/register') return next();
+    // Allow only the login page without auth (admin register requires an existing admin)
+    if (req.path === '/login') return next();
     return authAdmin(req, res, next);
 });
 app.use('/', backofficeRoutes);
 
 // 8. 404 Error Handler
 app.use((req, res) => {
-    res.status(404).send('404: Page Not Found'); 
+    res.status(404).render('webstore/404', { message: 'The page you are looking for does not exist.' });
 });
 
 // 9. Start Server & Database Verification

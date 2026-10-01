@@ -7,7 +7,7 @@ const Product = {
             `SELECT p.*, c.category_name 
              FROM products p 
              JOIN categories c ON p.category_id = c.category_id 
-             WHERE p.is_visible = TRUE 
+             WHERE p.is_visible = TRUE AND c.is_visible = TRUE 
              ORDER BY p.created_at DESC 
              LIMIT ? OFFSET ?`,
             [Number(limit), Number(offset)]
@@ -27,13 +27,31 @@ const Product = {
         return rows[0];
     },
 
+    // Storefront: get a product only if customers are allowed to see it
+    // (product visible AND its category visible). Hidden items return undefined → 404.
+    getStorefrontProductById: async (productId) => {
+        const [rows] = await db.query(
+            `SELECT p.*, c.category_name 
+             FROM products p 
+             JOIN categories c ON p.category_id = c.category_id 
+             WHERE p.product_id = ? AND p.is_visible = TRUE AND c.is_visible = TRUE`,
+            [productId]
+        );
+        return rows[0];
+    },
+
     // Search bar functionality
     searchProducts: async (keyword) => {
         const searchTerm = `%${keyword}%`;
         const [rows] = await db.query(
-            `SELECT * FROM products 
-             WHERE is_visible = TRUE AND (product_name LIKE ? OR product_description LIKE ?)`,
-            [searchTerm, searchTerm]
+            `SELECT p.* FROM products p 
+             JOIN categories c ON p.category_id = c.category_id 
+             WHERE p.is_visible = TRUE AND c.is_visible = TRUE AND (
+                 p.product_name LIKE ?
+                 OR p.product_description LIKE ?
+                 OR LOWER(JSON_UNQUOTE(JSON_EXTRACT(p.product_attributes, '$.author'))) LIKE LOWER(?)
+             )`,
+            [searchTerm, searchTerm, searchTerm]
         );
         return rows;
     },
@@ -117,17 +135,22 @@ const Product = {
 
         const qty = parseInt(product_quantity) || 0;
 
-        let query = `UPDATE products 
-                     SET category_id = ?, product_name = ?, product_description = ?, 
-                         product_price = ?, product_images = ?, product_attributes = ?, product_quantity = ?`;
-        let params = [category_id, product_name, product_description, product_price, product_images, product_attributes, qty];
-
-        if (qty <= 0) {
-            query += `, is_visible = FALSE`;
-        }
-
-        query += ` WHERE product_id = ?`;
-        params.push(productId);
+        // Visibility follows stock:
+        //  - new qty <= 0                     → hide automatically
+        //  - old qty <= 0 and new qty > 0     → restocked, show again automatically
+        //  - otherwise                        → keep what the admin chose (manual hide stays hidden)
+        // NOTE: is_visible must be assigned BEFORE product_quantity — MySQL evaluates
+        // SET left to right, so product_quantity here still holds the OLD value.
+        const query = `UPDATE products 
+                       SET is_visible = CASE
+                               WHEN ? <= 0 THEN FALSE
+                               WHEN product_quantity <= 0 THEN TRUE
+                               ELSE is_visible
+                           END,
+                           category_id = ?, product_name = ?, product_description = ?, 
+                           product_price = ?, product_images = ?, product_attributes = ?, product_quantity = ?
+                       WHERE product_id = ?`;
+        const params = [qty, category_id, product_name, product_description, product_price, product_images, product_attributes, qty, productId];
 
         const [result] = await db.query(query, params);
         return result.affectedRows > 0;

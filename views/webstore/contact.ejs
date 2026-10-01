@@ -30,11 +30,9 @@
                         <a class="nav-link dropdown-toggle fw-bold text-dark" href="#" id="categoryDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                             Categories</a>
                         <ul class="dropdown-menu border-0 shadow" aria-labelledby="categoryDropdown">
-                            <li><a class="dropdown-item" href="/category/fiction">Fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/nonfiction">Non-fiction</a></li>
-                            <li><a class="dropdown-item" href="/category/children">Children\'s Books</a></li>
-                            <li><a class="dropdown-item" href="/category/mystery">Mystery & Thriller</a></li>
-                            <li><a class="dropdown-item" href="/category/science">Science & Tech</a></li>
+                            <% navCategories.forEach(cat => { %>
+                            <li><a class="dropdown-item" href="/category/<%= categorySlug(cat) %>"><%= cat.category_name %></a></li>
+                            <% }); %>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item text-primary fw-bold" href="/categories">View All Categories</a></li>
                         </ul>
@@ -198,8 +196,8 @@
         <div class="d-flex justify-content-between pt-4 mt-4 border-top text-muted small">
             <p>&copy; 2026 InwZa Bookstore. All rights reserved.</p>
             <div class="d-flex gap-3">
-                <a href="/condition" class="text-decoration-none text-muted">Privacy policy</a>
-                <a href="/condition" class="text-decoration-none text-muted">Terms of service</a>
+                <a href="/condition#privacy" class="text-decoration-none text-muted">Privacy policy</a>
+                <a href="/condition#terms" class="text-decoration-none text-muted">Terms of service</a>
             </div>
         </div>
     </footer>

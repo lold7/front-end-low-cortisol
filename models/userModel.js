@@ -31,15 +31,6 @@ const User = {
         return result.insertId;
     },
 
-    // Update password via forgot password flow
-    updatePasswordByEmail: async (email, newPasswordHash) => {
-        const [result] = await db.query(
-            'UPDATE users SET password_hash = ? WHERE email = ?',
-            [newPasswordHash, email]
-        );
-        return result.affectedRows > 0;
-    },
-
     // Update user profile information
     updateUserProfile: async (userId, username, email, phone) => {
         const [result] = await db.query(

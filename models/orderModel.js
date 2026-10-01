@@ -1,30 +1,53 @@
 const db = require('../config/db');
 
 const Order = {
-    // Process a checkout
+    // Process a checkout (single transaction: order + items + stock + clear cart)
     createOrder: async (userId, addressId, totalPrice, paymentMethod, cartItems) => {
         // Determine status based on payment method
         const orderStatus = paymentMethod === 'Cash on Delivery' ? 'pending' : 'completed';
 
-        // 1. Create the main order record
-        const [orderResult] = await db.query(
-            'INSERT INTO orders (user_id, address_id, total_price, payment_method, status) VALUES (?, ?, ?, ?, ?)',
-            [userId, addressId, totalPrice, paymentMethod, orderStatus]
-        );
-        const orderId = orderResult.insertId;
+        const conn = await db.getConnection();
+        try {
+            await conn.beginTransaction();
 
-        // 2. Move items from the cart into the order_items table
-        for (const item of cartItems) {
-            await db.query(
-                'INSERT INTO order_items (order_id, product_id, quantity, unit_price) VALUES (?, ?, ?, ?)',
-                [orderId, item.product_id, item.quantity, item.product_price]
+            // 1. Create the main order record
+            const [orderResult] = await conn.query(
+                'INSERT INTO orders (user_id, address_id, total_price, payment_method, status) VALUES (?, ?, ?, ?, ?)',
+                [userId, addressId, totalPrice, paymentMethod, orderStatus]
             );
+            const orderId = orderResult.insertId;
+
+            for (const item of cartItems) {
+                // 2. Deduct stock (only succeeds if enough stock is left)
+                const [upd] = await conn.query(
+                    'UPDATE products SET product_quantity = product_quantity - ? WHERE product_id = ? AND product_quantity >= ?',
+                    [item.quantity, item.product_id, item.quantity]
+                );
+                if (upd.affectedRows === 0) {
+                    const err = new Error(`Sorry, "${item.product_name}" does not have enough stock left.`);
+                    err.code = 'OUT_OF_STOCK';
+                    throw err;
+                }
+
+                // 3. Move the item from the cart into the order_items table
+                await conn.query(
+                    'INSERT INTO order_items (order_id, product_id, quantity, unit_price, selected_attributes) VALUES (?, ?, ?, ?, ?)',
+                    [orderId, item.product_id, item.quantity, item.product_price,
+                     item.selected_attributes ? (typeof item.selected_attributes === 'string' ? item.selected_attributes : JSON.stringify(item.selected_attributes)) : null]
+                );
+            }
+
+            // 4. Empty the user's cart
+            await conn.query('DELETE FROM cart_items WHERE user_id = ?', [userId]);
+
+            await conn.commit();
+            return orderId;
+        } catch (err) {
+            await conn.rollback();
+            throw err;
+        } finally {
+            conn.release();
         }
-
-        // 3. Empty the user's cart
-        await db.query('DELETE FROM cart_items WHERE user_id = ?', [userId]);
-
-        return orderId;
     },
 
     // Get order history for the "My Account" page
@@ -34,6 +57,15 @@ const Order = {
             [userId]
         );
         return rows;
+    },
+
+    // Get a single order header, only if it belongs to this user
+    getOrderById: async (orderId, userId) => {
+        const [rows] = await db.query(
+            'SELECT * FROM orders WHERE order_id = ? AND user_id = ?',
+            [orderId, userId]
+        );
+        return rows[0] || null;
     },
 
     getOrderDetails: async (orderId, userId) => {
@@ -93,11 +125,41 @@ const Order = {
     },
     
     // Admin: Update order status
+    // Cancelling an order returns its stock; un-cancelling takes it again
     updateOrderStatus: async (orderId, status) => {
-        await db.query(
-            'UPDATE orders SET status = ? WHERE order_id = ?',
-            [status, orderId]
-        );
+        const conn = await db.getConnection();
+        try {
+            await conn.beginTransaction();
+
+            const [rows] = await conn.query('SELECT status FROM orders WHERE order_id = ? FOR UPDATE', [orderId]);
+            if (rows.length === 0) {
+                await conn.rollback();
+                return;
+            }
+            const oldStatus = rows[0].status;
+
+            let stockChange = null;
+            if (status === 'cancelled' && oldStatus !== 'cancelled') stockChange = '+';
+            if (status !== 'cancelled' && oldStatus === 'cancelled') stockChange = '-';
+
+            if (stockChange) {
+                const [items] = await conn.query('SELECT product_id, quantity FROM order_items WHERE order_id = ?', [orderId]);
+                for (const item of items) {
+                    await conn.query(
+                        `UPDATE products SET product_quantity = product_quantity ${stockChange} ? WHERE product_id = ?`,
+                        [item.quantity, item.product_id]
+                    );
+                }
+            }
+
+            await conn.query('UPDATE orders SET status = ? WHERE order_id = ?', [status, orderId]);
+            await conn.commit();
+        } catch (err) {
+            await conn.rollback();
+            throw err;
+        } finally {
+            conn.release();
+        }
     }
 };
 

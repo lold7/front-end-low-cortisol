@@ -4,7 +4,7 @@ const Cart = {
     // Get all items in a specific user's cart
     getCartByUserId: async (userId) => {
         const [rows] = await db.query(
-            `SELECT c.cart_item_id, c.quantity, p.product_id, p.product_name, p.product_price, p.product_images
+            `SELECT c.cart_item_id, c.quantity, c.selected_attributes, p.product_id, p.product_name, p.product_price, p.product_images
              FROM cart_items c
              JOIN products p ON c.product_id = p.product_id
              WHERE c.user_id = ?`,
@@ -13,11 +13,23 @@ const Cart = {
         return rows;
     },
 
-    // Add a product to the cart (or update quantity if it already exists)
-    addItem: async (userId, productId, quantity = 1) => {
-        const [existing] = await db.query(
-            'SELECT cart_item_id, quantity FROM cart_items WHERE user_id = ? AND product_id = ?',
+    // How many units of a product this user already has in the cart (all formats combined)
+    getItemQuantity: async (userId, productId) => {
+        const [rows] = await db.query(
+            'SELECT COALESCE(SUM(quantity), 0) AS total FROM cart_items WHERE user_id = ? AND product_id = ?',
             [userId, productId]
+        );
+        return parseInt(rows[0].total) || 0;
+    },
+
+    // Add a product to the cart (or update quantity if the same book + same format already exists)
+    addItem: async (userId, productId, quantity = 1, selectedAttributes = null) => {
+        const format = selectedAttributes && selectedAttributes.format ? selectedAttributes.format : null;
+        const [existing] = await db.query(
+            `SELECT cart_item_id, quantity FROM cart_items
+             WHERE user_id = ? AND product_id = ?
+               AND JSON_UNQUOTE(JSON_EXTRACT(selected_attributes, '$.format')) <=> ?`,
+            [userId, productId, format]
         );
 
         if (existing.length > 0) {
@@ -28,8 +40,8 @@ const Cart = {
         } else {
             // Insert new cart item
             const [result] = await db.query(
-                'INSERT INTO cart_items (user_id, product_id, quantity) VALUES (?, ?, ?)',
-                [userId, productId, quantity]
+                'INSERT INTO cart_items (user_id, product_id, quantity, selected_attributes) VALUES (?, ?, ?, ?)',
+                [userId, productId, quantity, selectedAttributes ? JSON.stringify(selectedAttributes) : null]
             );
             return result.insertId;
         }

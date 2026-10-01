@@ -190,14 +190,25 @@ const backofficeController = {
     deleteCategory: async (req, res) => {
         try {
             const categoryId = req.params.id;
+
+            // Block deleting a category that still has products (prevents FK cascade wiping them)
+            const productCount = await Category.countProducts(categoryId);
+            if (productCount > 0) {
+                const categories = await Category.getAdminCategories();
+                return res.status(409).render('backoffice/categories', {
+                    categories: categories,
+                    error: `Cannot delete a category that contains products (${productCount} product${productCount === 1 ? '' : 's'}). Please delete or reassign the products first.`
+                });
+            }
+
             await Category.deleteCategory(categoryId);
             res.redirect('/backoffice/categories');
         } catch (error) {
             console.error('Delete category error:', error);
             const categories = await Category.getAdminCategories();
-            res.render('backoffice/categories', { 
+            res.status(500).render('backoffice/categories', { 
                 categories: categories, 
-                error: 'Cannot delete a category that contains products. Please delete or reassign the products first.' 
+                error: 'Could not delete this category. Please try again.' 
             });
         }
     },
@@ -242,6 +253,10 @@ const backofficeController = {
         try {
             const { id } = req.params;
             const { status } = req.body;
+            const allowedStatuses = ['pending', 'processing', 'completed', 'cancelled'];
+            if (!allowedStatuses.includes(status)) {
+                return res.status(400).send('Invalid order status');
+            }
             await Order.updateOrderStatus(id, status);
             res.redirect('/backoffice/orders');
         } catch (error) {
